@@ -5,11 +5,41 @@ import Footer from './components/layout/Footer';
 import Landing from './components/layout/Landing';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import Dashboard from './components/dashboard/Dashboard';
+import CreateProfile from './components/create-profile/CreateProfile';
+import EditProfile from './components/edit-profile/EditProfile';
+import AddExperience from './components/add-credentials/AddExperience';
+import jwt_decode from 'jwt-decode';
+import setAuthToken from './utils/setAuthToken';
+import {setCurrentUser, logoutUser} from './actions/authActions';
+import {clearCurrentProfile} from './actions/profileActions';
 
-import {BrowserRouter as Router, Route} from 'react-router-dom';
+import {BrowserRouter as Router, Route, Switch} from 'react-router-dom';
+import PrivateRoute from './components/common/PrivateRoute';
 import {Provider} from 'react-redux';
 import store from './store';
 
+//check for presence of token in localStorage
+if(localStorage.jwtToken) {
+  //set auth token as authorization header
+  setAuthToken(localStorage.jwtToken);
+  //decode the token to get user data (including expiration)
+  const decodedUser = jwt_decode(localStorage.jwtToken)
+  //set the user and isAuthenticated
+  store.dispatch(setCurrentUser(decodedUser));
+
+  //log out the user if 1 hour has passed
+  const currentTime = Date.now()/1000;
+  if(decodedUser.exp < currentTime) {
+    store.dispatch(logoutUser());
+    //also clear the user profile as they log out
+    store.dispatch(clearCurrentProfile());
+    //redirect to login page
+    window.location.href = '/login';
+  }
+
+
+}
 
 
 class App extends Component {
@@ -23,6 +53,12 @@ class App extends Component {
             <div className='container'>
               <Route exact path='/register' component={Register} />
               <Route exact path='/login' component={Login} />
+              <Switch>
+                <PrivateRoute exact path='/dashboard' component={Dashboard} />
+                <PrivateRoute exact path='/create-profile' component={CreateProfile} />
+                <PrivateRoute exact path='/edit-profile' component={EditProfile} />
+                <PrivateRoute exact path='/add-experience' component={AddExperience} />
+              </Switch>
             </div>
             <Footer />
           </div>
